@@ -1,0 +1,77 @@
+version: '3.8'
+services:
+  kenect-backend:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    container_name: backend-kenect
+    ports:
+      - "8080:8080"
+    environment:
+      - KENECT_BASE_URL=https://k-messages-api.herokuapp.com/api/v1
+      - KENECT_TOKEN_API=<TOKEN_API>
+    networks:
+      - kenect-network
+    volumes:
+      - shared:/shared
+
+  sonarqube:
+    image: sonarqube:latest
+    container_name: sonar
+    ports:
+      - "9000:9000"
+      - "9092:9092"
+    environment:
+      - SONARQUBE_HOME=/opt/sonarqube
+      - SONAR_VERSION=10.1.0.73491
+      - SQ_DATA_DIR=/opt/sonarqube/data
+      - SQ_EXTENSIONS_DIR=/opt/sonarqube/extensions
+      - SQ_LOGS_DIR=/opt/sonarqube/logs
+      - SQ_TEMP_DIR=/opt/sonarqube/temp
+    volumes:
+      - ./sonarqube_data:/opt/sonarqube/data
+      - ./sonarqube_extensions:/opt/sonarqube/extensions
+      - ./sonarqube_logs:/opt/sonarqube/logs
+      - ./sonarqube_temp:/opt/sonarqube/temp
+    networks:
+      - kenect-network
+  
+  sonarqube_token_creator:
+    image: badouralix/curl-jq
+    container_name: sonar-token-kenect
+    depends_on:
+      - sonarqube
+    entrypoint: >
+      sh -c "
+      while ! curl -s http://sonarqube:9000/api/system/status | grep -q 'UP'; do
+        echo 'Waiting for SonarQube to start...';
+        sleep 5;
+      done;
+      echo 'SonarQube is ready. Creating user...';
+      curl -s -u admin:admin -X POST 'http://sonarqube:9000/api/users/create' -d 'login=kenect&name=kenect%20User&password=k3n3ct&password_confirmation=k3n3ct';
+      echo 'User created. Assigning permissions...';
+      curl -s -u admin:admin -X POST 'http://sonarqube:9000/api/permissions/add_user' -d 'login=kenect&permission=admin';
+      curl -s -u admin:admin -X POST 'http://sonarqube:9000/api/permissions/add_user' -d 'login=kenect&permission=scan';
+      curl -s -u admin:admin -X POST 'http://sonarqube:9000/api/permissions/add_user' -d 'login=kenect&permission=provisioning';
+      echo 'Permissions assigned. Generating the token...';
+      echo 'Changing admin password...';
+      curl -s -u admin:admin -X POST 'http://sonarqube:9000/api/users/change_password' -d 'login=admin&password=k3n3ct&previousPassword=admin';
+      echo 'Revoking old token...';
+      curl -s -u kenect:k3n3ct -X POST 'http://sonarqube:9000/api/user_tokens/revoke' -d 'login=kenect&name=token-kenect'
+      echo 'Generating new token...';
+      token=$(curl -s -u kenect:k3n3ct -X POST 'http://sonarqube:9000/api/user_tokens/generate' -d 'name=token-kenect' | jq -r '.token');
+      echo \"Generated Token: $$token\";
+      echo \"$$token\" > /tmp/sonar_token.txt;
+      cp /tmp/sonar_token.txt /shared/sonar_token.txt;
+      "
+    networks:
+      - kenect-network
+    volumes:
+      - shared:/shared
+  
+networks:
+  kenect-network:
+    driver: bridge
+
+volumes:
+  shared:
