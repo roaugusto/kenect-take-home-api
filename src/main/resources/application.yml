@@ -1,9 +1,15 @@
 spring:
   application:
     name: contact-aggregator
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+#  autoconfigure:
+#    exclude:
+#      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+
+database:
+  hostname: ${DATABASE_HOSTNAME:localhost:5432}
+  databasename: ${DATABASE_NAME:kenect}
+  username: ${DATABASE_USERNAME:postgres}
+  password: ${DATABASE_PASSWORD:k3n3ct}
 
 server:
   port: 8080
@@ -11,7 +17,7 @@ server:
 kenect:
   api:
     base-url: ${KENECT_BASE_URL:https://k-messages-api.herokuapp.com/api/v1}
-    auth-token: ${KENECT_TOKEN_API:<TOKEN_API>}
+    auth-token: ${KENECT_TOKEN_API:J7ybt6jv6pdJ4gyQP9gNonsY}
 
 logging:
   level:

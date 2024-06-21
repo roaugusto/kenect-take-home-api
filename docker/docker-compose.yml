@@ -1,5 +1,24 @@
 version: '3.8'
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgresql-kenect
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: k3n3ct
+      POSTGRES_DB: kenect
+    ports:
+      - 5432:5432
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    networks:
+      - kenect-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d kenect -U postgres"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+  
   kenect-backend:
     build:
       context: ../
@@ -7,9 +26,16 @@ services:
     container_name: backend-kenect
     ports:
       - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
+      - DATABASE_HOSTNAME=postgres:5432
+      - DATABASE_NAME=kenect
+      - DATABASE_USERNAME=postgres
+      - DATABASE_PASSWORD=k3n3ct
       - KENECT_BASE_URL=https://k-messages-api.herokuapp.com/api/v1
-      - KENECT_TOKEN_API=<TOKEN_API>
+      - KENECT_TOKEN_API=J7ybt6jv6pdJ4gyQP9gNonsY
     networks:
       - kenect-network
     volumes:

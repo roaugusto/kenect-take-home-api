@@ -12,4 +12,15 @@ public class ApplicationProperties {
     @Value("${kenect.api.auth-token}")
     private String kenectApiAuthToken;
 
+    @Value("${database.hostname}")
+    private String databaseHostname;
+
+    @Value("${database.databasename}")
+    private String databaseName;
+
+    @Value("${database.username}")
+    private String databaseUsername;
+
+    @Value("${database.password}")
+    private String databasePassword;
 }
